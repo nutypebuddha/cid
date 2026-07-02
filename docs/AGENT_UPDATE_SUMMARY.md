@@ -109,7 +109,7 @@ Updated all CID agent skills for opencode to use full CID features as default, i
 
 ## Test Results
 - All 17 integration tests passing
-- 140 unit tests passing
+- 164 unit tests passing
 - Domain system tested
 - All skills updated
 

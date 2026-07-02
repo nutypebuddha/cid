@@ -1,4 +1,7 @@
-# CID v0.5.0 — Long-Term Planning & Dev Time Savings
+# CID v0.5.0 — Long-Term Planning & Dev Time Savings (Historical)
+
+> **Note**: This document uses pre-release versioning (v0.5.0, v0.8.0) from the development phase.
+> The current release is **v0.1.0**. Concepts here remain valid for future iterations.
 
 **Optimized Plan Document**
 **Date:** 2026-06-30

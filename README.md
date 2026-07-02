@@ -1,7 +1,5 @@
 # CID - Calibrated Inference Device
 
-[![Crates.io](https://img.shields.io/crates/v/cid.svg)](https://crates.io/crates/cid)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/cid)
 [![License](https://img.shields.io/badge/license-unlicense-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://rustup.rs)
 
@@ -53,7 +51,7 @@ CID acts as a validation gate between LLM output and the real world. Think of LL
 
 ### Performance
 
-- **Binary Size**: ~615KB (WASM) / ~872KB (native)
+- **Binary Size**: ~630KB (WASM) / ~791KB (native)
 - **Validation Overhead**: <0.2% vs LLM inference cost
 - **Zero Dependencies**: Pure Rust with `std` only (optional `ureq` for HTTP)
 
@@ -104,16 +102,16 @@ cargo build --release
 
 ```bash
 # Validate math expression
-echo "2 + 3 = 5" | cid validate --- math
+echo "2 + 3 = 5" | cid validate -- math
 
 # Fix math errors
-echo "2 + 3 = 6" | cid fix --- math
+echo "2 + 3 = 6" | cid fix -- math
 
 # Fix typos
-echo "hte cat sat on teh mat" | cid fix --- 
+echo "hte cat sat on teh mat" | cid fix --
 
 # Validate with all gates
-echo "The Earth is flat" | cid validate --- fact
+echo "The Earth is flat" | cid validate -- fact
 
 # Score response quality
 cid score "Everyone knows this is true"
@@ -235,10 +233,30 @@ export CID_MODEL_TIMEOUT="60000"
 
 ```toml
 [dependencies]
-cid = { version = "0.8.0", features = ["proxy"] }
+cid = { version = "0.1.0", features = ["proxy"] }
 
 # Available features:
 # - proxy: HTTP client for LLM proxying
+# - plugins: WASM-based third-party gate plugins
+```
+
+## Universal AI Bridge
+
+Any AI chatbot (Grok, OpenAI, Anthropic, Mistral, Claude) can hook into CID validation via the universal MCP bridge:
+
+```bash
+git clone https://codeberg.org/NutypeBuddha/cid-bridge.git
+cd cid-bridge
+npm install
+CID_BINARY=../cid/target/release/cid npm start
+```
+
+**Bridge repo**: [codeberg.org/NutypeBuddha/cid-bridge](https://codeberg.org/NutypeBuddha/cid-bridge)
+
+```
+POST /mcp       — MCP protocol (platform-aware validation)
+POST /validate  — direct CID validation
+GET  /health    — health check
 ```
 
 ## Performance Benchmarks
@@ -267,6 +285,10 @@ cargo test test_math_validation
 
 # Run benchmarks
 cargo bench
+
+# Run WASM tests
+cd cid-wasm
+cargo test
 ```
 
 ## Contributing

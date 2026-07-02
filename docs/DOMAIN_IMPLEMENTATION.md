@@ -50,7 +50,7 @@ pub enum Domain {
 - `KnowledgeBase::facts_with_domains() -> Vec<(String, f64, String, String)>`
 
 ## Test Results
-- All 157 tests passing (140 unit + 17 integration)
+- All 181 tests passing (164 unit + 17 integration)
 - Domain system test included
 
 ## Usage Examples

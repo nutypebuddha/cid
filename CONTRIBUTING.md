@@ -122,6 +122,8 @@ Follow the existing code structure:
 - `src/mcp/` - MCP server and tools
 - `src/tanto/` - Math operations
 - `src/kb/` - Knowledge base
+- `src/plugin/` - WASM plugin system
+- `cid-wasm/` - WASM build target
 
 ## Testing
 
