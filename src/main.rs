@@ -251,10 +251,105 @@ fn main() {
                 }
                 return;
             }
+            "tanto" => {
+                if args.len() < 3 {
+                    eprintln!("Usage: cid tanto <subcommand> [args]");
+                    std::process::exit(1);
+                }
+                let subcmd = &args[2];
+                let rest = if args.len() > 3 { args[3..].join(" ") } else { String::new() };
+                let env = &mut cid::tanto::TantoEnv::new();
+                let output = match subcmd.as_str() {
+                    "eval" => match cid::tanto::evaluate_nl(&rest, env) {
+                        Some(val) => format!("= {}", cid::tanto::math::format_f64(val)),
+                        None => format!("Error: cannot evaluate '{}'", rest),
+                    },
+                    "convert" => match cid::tanto::convert::convert(&rest) {
+                        Some(cr) => format!("= {} {} (from {} to {})",
+                            cid::tanto::math::format_f64(cr.value), cr.to, cr.from, cr.to),
+                        None => format!("Error: unknown conversion '{}'", rest),
+                    },
+                    "formula" => match cid::tanto::formulas::compute_formula(&rest) {
+                        Some(fr) => format!("{} = {}  [{}]", fr.name, cid::tanto::math::format_f64(fr.result), fr.formula),
+                        None => format!("Error: unknown formula '{}'", rest),
+                    },
+                    "solve" => match cid::tanto::solver::solve(&rest) {
+                        Some(sr) => sr.output,
+                        None => format!("Error: unknown solver '{}'", rest),
+                    },
+                    "think" => match cid::tanto::thinking::think(&rest) {
+                        Some(tr) => tr.body,
+                        None => format!("Error: unknown framework '{}'", rest),
+                    },
+                    "check" => match cid::tanto::sanity::check(&rest) {
+                        Some(cr) => {
+                            let status = if cr.val < cr.min { "BELOW RANGE" } else if cr.val > cr.max { "ABOVE RANGE" } else { "OK" };
+                            format!("{} {} [range: {} - {}, typical: {}, status: {}]",
+                                cid::tanto::math::format_f64(cr.val), cr.unit,
+                                cid::tanto::math::format_f64(cr.min), cid::tanto::math::format_f64(cr.max),
+                                cr.typical, status)
+                        }
+                        None => format!("Error: bad args '{}'", rest),
+                    },
+                    "estimate" => match cid::tanto::sanity::estimate(&rest) {
+                        Some(er) => format!("{} ~ 10^{} ({})", cid::tanto::math::format_f64(er.val), er.order, er.context),
+                        None => format!("Error: bad number '{}'", rest),
+                    },
+                    "pipeline" => match cid::tanto::pipeline::evaluate_pipeline(&rest, env) {
+                        Some(val) => format!("= {}", cid::tanto::math::format_f64(val)),
+                        None => format!("Error: cannot evaluate pipeline '{}'", rest),
+                    },
+                    "rational" => match cid::tanto::rational::eval_rational(&rest, env) {
+                        Some(rat) => format!("= {}  (decimal: {}, mixed: {})", rat.format(), rat.to_f64(), rat.format_mixed()),
+                        None => format!("Error: cannot evaluate '{}' as rational", rest),
+                    },
+                    "verify" => match cid::tanto::verify::verify(&rest, env) {
+                        Some(vr) => format!("{} (expected={}, computed={}, diff={})",
+                            vr.status, cid::tanto::math::format_f64(vr.expected),
+                            cid::tanto::math::format_f64(vr.computed), cid::tanto::math::format_f64(vr.diff)),
+                        None => format!("Error: verify needs: verify <expected> <expr>"),
+                    },
+                    "test" => {
+                        let correctness = cid::tanto::verify::run_self_test();
+                        let mut out = String::from("=== TANTO CORRECTNESS ===\n");
+                        let mut pass = 0;
+                        for (desc, ok) in &correctness {
+                            pass += if *ok { 1 } else { 0 };
+                            out.push_str(&format!("  {} {}\n", if *ok { "OK" } else { "FAIL" }, desc));
+                        }
+                        out.push_str(&format!("--- {} passed, {} failed ---\n\n", pass, correctness.len() - pass));
+                        let determinism = cid::tanto::determinism::run_determinism_audit();
+                        let mut det_pass = 0;
+                        for (desc, ok) in &determinism {
+                            det_pass += if *ok { 1 } else { 0 };
+                            out.push_str(&format!("  {} {}\n", if *ok { "OK" } else { "FAIL" }, desc));
+                        }
+                        out.push_str(&format!("--- {} passed, {} failed ---\n", det_pass, determinism.len() - det_pass));
+                        out
+                    }
+                    _ => format!("Unknown tanto subcommand: {}. Try 'help'.", subcmd),
+                };
+                println!("{}", output);
+                return;
+            }
+            "plugins" => {
+                let action = args.get(2).map(|s| s.as_str()).unwrap_or("help");
+                match action {
+                    "list" => {
+                        println!("Plugin system: use `cid tanto` for compute, `cid validate` for validation.");
+                        println!("WASM plugin loading: enable with --features plugins");
+                    }
+                    _ => {
+                        eprintln!("Usage: cid plugins list");
+                        std::process::exit(1);
+                    }
+                }
+                return;
+            }
             _ => {}
         }
     }
-    
+
     let mut device = CIDDevice::new();
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap_or(0);

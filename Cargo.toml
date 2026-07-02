@@ -50,6 +50,8 @@ criterion = { version = "0.5", features = ["html_reports"] }
 
 [dependencies]
 ureq = { version = "3", features = ["json"], optional = true }
+wasmtime = { version = "46", optional = true }
 
 [features]
 proxy = ["ureq"]
+plugins = ["wasmtime"]

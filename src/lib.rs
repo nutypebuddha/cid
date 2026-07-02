@@ -7,6 +7,7 @@ pub mod output;
 pub mod inference;
 pub mod mcp;
 pub mod tanto;
+pub mod plugin;
 
 pub use core::pin::{Pin, PinField, Gate};
 pub use core::ball::{Ball, TokenCandidate, GateResult};
