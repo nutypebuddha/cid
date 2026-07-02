@@ -42,6 +42,7 @@ pub fn verify(args: &str, env: &TantoEnv) -> Option<VerifyResult> {
 }
 
 /// Run self-test on all core math operations
+#[allow(clippy::approx_constant, clippy::excessive_precision, clippy::vec_init_then_push)]
 pub fn run_self_test() -> Vec<(&'static str, bool)> {
     let mut results = vec![];
 

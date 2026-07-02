@@ -1,3 +1,4 @@
+#![allow(clippy::vec_init_then_push)]
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -173,7 +174,7 @@ impl Fact {
             source: source.to_string(),
             domain,
             created_at: now_epoch(),
-            confidence: confidence.max(0.0).min(1.0),
+            confidence: confidence.clamp(0.0, 1.0),
         }
     }
 }
@@ -1120,6 +1121,9 @@ impl KnowledgeBase {
         facts.push(Fact::new("information_age", 1970.0, "AD", "Information Age begins"));
         facts.push(Fact::new("internet_era", 1991.0, "AD", "Internet era begins"));
 
+        // Add all facts from the bulk data module (facts_data.rs)
+        facts.extend(super::facts_data::all_facts());
+
         let index: HashMap<String, usize> = facts.iter()
             .enumerate()
             .map(|(i, f)| (f.name.clone(), i))
@@ -1130,7 +1134,7 @@ impl KnowledgeBase {
         for (i, fact) in facts.iter().enumerate() {
             domain_index
                 .entry(fact.domain)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(i);
         }
 
@@ -1151,7 +1155,7 @@ impl KnowledgeBase {
         self.index.insert(fact.name.clone(), idx);
         self.domain_index
             .entry(domain)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(idx);
         self.facts.push(fact);
     }
@@ -1177,7 +1181,7 @@ impl KnowledgeBase {
         for (i, fact) in self.facts.iter().enumerate() {
             self.domain_index
                 .entry(fact.domain)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(i);
         }
     }
@@ -1268,7 +1272,7 @@ impl KnowledgeBase {
                     || f.unit.to_lowercase().contains(&lower_query)
             ))
             .collect();
-        results.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        results.sort_by_key(|f| std::cmp::Reverse(f.created_at));
         results
     }
 
@@ -1330,7 +1334,7 @@ impl KnowledgeBase {
     pub fn update_fact(&mut self, name: &str, new_value: f64, new_confidence: f64) -> bool {
         if let Some(fact) = self.facts.iter_mut().find(|f| f.name == name) {
             fact.value = new_value;
-            fact.confidence = new_confidence.max(0.0).min(1.0);
+            fact.confidence = new_confidence.clamp(0.0, 1.0);
             true
         } else {
             false

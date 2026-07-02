@@ -69,10 +69,10 @@ impl TokenFixer {
                 }
 
                 let mut rhs_end = result.len();
-                for i in (eq_pos + 1)..bytes.len() {
-                    if bytes[i] == b',' || bytes[i] == b'.' || bytes[i] == b';'
-                        || bytes[i] == b':' || bytes[i] == b'?' || bytes[i] == b'!'
-                        || bytes[i] == b'\n'
+                for (i, &byte) in bytes.iter().enumerate().skip(eq_pos + 1) {
+                    if byte == b',' || byte == b'.' || byte == b';'
+                        || byte == b':' || byte == b'?' || byte == b'!'
+                        || byte == b'\n'
                     {
                         rhs_end = i;
                         break;
@@ -221,7 +221,7 @@ impl TokenFixer {
             }
         }
 
-        replacements.sort_by(|a, b| b.0.cmp(&a.0));
+        replacements.sort_by_key(|k| std::cmp::Reverse(k.0));
 
         for (_, _, ref original, ref fixed, ref reason) in &replacements {
             let token_fix = TokenFix::new(original, fixed, reason, 0.9);

@@ -1,6 +1,5 @@
 /// Semantic cache - stores responses keyed by meaning, not exact text.
 /// Uses Jaccard word similarity for zero-dependency matching.
-
 use std::time::{Duration, Instant};
 
 pub struct SemanticCache {

@@ -1,6 +1,5 @@
 /// Conversation tracker - tracks token usage across LLM conversations.
 /// Helps stay within free tier limits.
-
 use std::time::Instant;
 
 #[derive(Debug, Clone)]

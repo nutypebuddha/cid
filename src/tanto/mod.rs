@@ -23,6 +23,12 @@ pub struct TantoEnv {
     pub ans: Option<f64>,
 }
 
+impl Default for TantoEnv {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TantoEnv {
     pub fn new() -> Self {
         TantoEnv {
@@ -52,10 +58,11 @@ impl TantoEnv {
 }
 
 /// Built-in physical constants matching Tanto's values
+#[allow(clippy::approx_constant, clippy::excessive_precision)]
 pub fn get_constant(name: &str) -> Option<f64> {
     match name {
-        "pi" => Some(3.141592653589793),
-        "e" => Some(2.718281828459045),
+        "pi" => Some(std::f64::consts::PI),
+        "e" => Some(std::f64::consts::E),
         "c" => Some(299792458.0),
         "c_squared" => Some(89875517873681764.0),
         "R_air" => Some(287.05869491149255),

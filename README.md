@@ -6,6 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-unlicense-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://rustup.rs)
+[![Version](https://img.shields.io/badge/version-v0.2.0-6366f1)](CHANGELOG.md)
 [![Wintermore Housekeeping](https://img.shields.io/badge/by-Wintermore%20Housekeeping-6366f1)](https://codeberg.org/NutypeBuddha)
 
 **A per-token validation layer for LLMs using pachinko mechanics to enforce mathematical, logical, and factual constraints at inference time.**

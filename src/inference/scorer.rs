@@ -1,6 +1,5 @@
 /// Response scorer - evaluates LLM output quality using CID gates.
 /// Returns quality scores and suggested actions.
-
 use crate::gates::fallacy::FallacyGate;
 use crate::gates::logic::LogicGate;
 use crate::inference::bias::BiasDetector;
@@ -246,7 +245,7 @@ impl ResponseScorer {
     }
 
     fn check_coherence(&self, text: &str, issues: &mut Vec<QualityIssue>) -> f64 {
-        let sentences: Vec<&str> = text.split(|c| c == '.' || c == '!' || c == '?')
+        let sentences: Vec<&str> = text.split(['.', '!', '?'])
             .filter(|s| !s.trim().is_empty())
             .collect();
 
@@ -289,9 +288,7 @@ impl ResponseScorer {
         let has_critical = issues.iter().any(|i| i.severity == IssueSeverity::Critical);
         let has_high = issues.iter().any(|i| i.severity == IssueSeverity::High);
 
-        if has_critical {
-            SuggestedAction::Escalate
-        } else if score < 0.3 {
+        if has_critical || score < 0.3 {
             SuggestedAction::Escalate
         } else if score < 0.5 || has_high {
             SuggestedAction::Retry
@@ -313,7 +310,7 @@ impl ResponseScorer {
             }
         }).sum::<f64>();
 
-        (base_confidence - issue_penalty).max(0.0).min(1.0)
+        (base_confidence - issue_penalty).clamp(0.0, 1.0)
     }
 }
 
@@ -345,7 +342,7 @@ mod tests {
             "Everyone knows that this is the best approach. It's obvious that we should always do this.",
             "analysis"
         );
-        assert!(report.issues.len() > 0, "Should detect issues");
+        assert!(!report.issues.is_empty(), "Should detect issues");
     }
 
     #[test]

@@ -109,7 +109,9 @@ fn test_knowledge_base() {
     assert!(kb.lookup("nonexistent").is_none());
     
     let pi = kb.lookup("pi").unwrap();
-    assert!((pi.value - 3.141592653589793).abs() < 1e-10);
+    #[allow(clippy::approx_constant)]
+    let pi_val = 3.141592653589793;
+    assert!((pi.value - pi_val).abs() < 1e-10);
 }
 
 #[test]

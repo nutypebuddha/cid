@@ -214,7 +214,7 @@ impl LogicGate {
             score -= 0.5;
         }
         
-        score.max(1.0).min(10.0)
+        score.clamp(1.0, 10.0)
     }
 
     /// Detect prompt injection attacks.

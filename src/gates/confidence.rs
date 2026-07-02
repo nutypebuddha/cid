@@ -421,11 +421,11 @@ impl ConfidenceGate {
     /// Low confidence (<60%) may be underconfident
     pub fn adjust_overconfidence(raw_confidence: f64) -> f64 {
         if raw_confidence > 0.8 {
-            (raw_confidence * 0.85).max(0.0).min(1.0)
+            (raw_confidence * 0.85).clamp(0.0, 1.0)
         } else if raw_confidence > 0.6 {
-            (raw_confidence * 0.92).max(0.0).min(1.0)
+            (raw_confidence * 0.92).clamp(0.0, 1.0)
         } else {
-            (raw_confidence * 1.05).max(0.0).min(1.0)
+            (raw_confidence * 1.05).clamp(0.0, 1.0)
         }
     }
 }

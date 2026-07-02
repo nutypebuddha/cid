@@ -114,7 +114,7 @@ pub fn compute_named(op: &[u8], args: &[f64]) -> Option<f64> {
         // Physics/math utilities
         "energy" if n == 1 => Some(args[0] * 89875517873681764.0),
         "gas_temp" if n == 2 => {
-            if args[1] == 0.0 { None } else { Some(args[0] / (287.05869491149255 * args[1])) }
+            if args[1] == 0.0 { None } else { Some(args[0] / (crate::tanto::get_constant("R_air").unwrap_or(287.058_694_911_492_5) * args[1])) }
         }
         "ratio" if n == 3 => {
             if args[2] == 0.0 { None } else { Some(args[0] * args[1] / args[2]) }

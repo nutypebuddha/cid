@@ -16,8 +16,8 @@ pub fn evaluate_pipeline(line: &str, env: &TantoEnv) -> Option<f64> {
     }
 
     let mut prev: Option<f64> = None;
-    for i in 0..seg_count {
-        let val = eval_segment(segments[i], env, prev)?;
+    for seg in &segments[..seg_count] {
+        let val = eval_segment(seg, env, prev)?;
         prev = Some(val);
     }
     prev
@@ -43,11 +43,11 @@ fn eval_segment(seg: &[u8], env: &TantoEnv, prev: Option<f64>) -> Option<f64> {
     let op = tokens[0];
     let mut args = [0.0f64; 4];
     let mut argc = 0;
-    for j in 1..tokens.len() {
-        if tokens[j] == b"_" {
+    for tok in &tokens[1..] {
+        if *tok == b"_" {
             args[argc] = prev.unwrap_or(0.0);
         } else {
-            args[argc] = parse_arg_value(tokens[j], env)?;
+            args[argc] = parse_arg_value(tok, env)?;
         }
         argc += 1;
     }

@@ -7,15 +7,16 @@
 - **Tests**: `tests/integration.rs` (17 integration tests), per-module `#[cfg(test)]` (164 unit tests)
 - **Benches**: `benches/gate_benchmark.rs` — criterion benchmarks for all 5 gates
 - **CI**: `.woodpecker.yml` — build + test + WASM + binary size
+- **KB**: 1,606 facts across 12 Greek-letter domains (`facts.rs` + `facts_data.rs`)
 
 ## Build & test
 ```bash
-cargo build --release        # size-optimized (opt-level=z, lto=fat, strip)
+cargo build --release        # size-optimized (opt-level=z, lto=fat, strip) — 856KB
 cargo test --lib              # 164 unit tests
 cargo test                    # + 17 integration tests (181 total)
 cargo bench                   # criterion benchmarks
 cargo test --features plugins # WASM plugin tests (skips on non-WASM arch)
-cargo clippy -- -D warnings
+cargo clippy -- -D warnings   # 0 warnings
 ```
 
 ## Binary usage
@@ -34,7 +35,7 @@ cid tanto <eval|convert|formula|solve|think|check|estimate|pipeline|rational|ver
 - **Economy**: BallEconomy + Budget + CostTracker — token budgeting and cost tracking
 - **Inference engine**: Pipeline orchestrates validation through gates + TokenFixer for auto-correction
 - **Tanto**: 12 compute modules (parser, math, rational, convert, formulas, solver, sanity, thinking, pipeline, verify, determinism, natural language)
-- **KB**: 776+ facts across 12 Greek-letter domains (Alpha through Mu), HashMap-indexed with TF-IDF search
+- **KB**: 1,606 facts across 12 Greek-letter domains (Alpha through Mu), HashMap-indexed with TF-IDF search + dynamic fact injection
 
 ## Cargo features
 - `proxy` → enables `ureq` HTTP client for LLM proxy mode

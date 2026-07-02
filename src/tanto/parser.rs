@@ -249,8 +249,8 @@ pub fn eval_op_format(expr: &[u8], env: &TantoEnv) -> Option<f64> {
     let op = tokens[0];
     let mut args = [0.0_f64; 4];
     let mut argc = 0;
-    for j in 1..tcount {
-        args[argc] = parse_arg_value(tokens[j], env)?;
+    for tok in &tokens[1..tcount] {
+        args[argc] = parse_arg_value(tok, env)?;
         argc += 1;
     }
 
@@ -289,9 +289,8 @@ pub fn looks_like_expression(s: &[u8]) -> bool {
             b'=' => {
                 if i + 1 < s.len() && s[i + 1] == b'=' { return true; }
             }
-            b'!' => {
-                if i + 1 < s.len() && s[i + 1] == b'=' { return true; }
-            }
+            b'!'
+                if i + 1 < s.len() && s[i + 1] == b'=' => { return true; }
             _ => {}
         }
         i += 1;

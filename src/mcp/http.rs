@@ -1,7 +1,6 @@
 /// HTTP transport for MCP server.
 /// Simple HTTP/1.1 server using only std (zero dependencies).
 /// Enables Claude web interface to connect via custom connector.
-
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write, BufRead, BufReader};
 use std::thread;
@@ -55,7 +54,7 @@ fn handle_connection(mut stream: TcpStream, _addr: &str) {
         return;
     }
 
-    let parts: Vec<&str> = request_line.trim().split_whitespace().collect();
+    let parts: Vec<&str> = request_line.split_whitespace().collect();
     if parts.len() < 2 {
         send_http_response(&mut stream, 400, "Bad Request", "{}");
         return;
@@ -106,12 +105,11 @@ fn handle_connection(mut stream: TcpStream, _addr: &str) {
 
     // Read body
     let mut body = vec![0u8; content_length];
-    if content_length > 0 {
-        if reader.read_exact(&mut body).is_err() {
+    if content_length > 0
+        && reader.read_exact(&mut body).is_err() {
             send_http_response(&mut stream, 400, "Bad Request", "{}");
             return;
         }
-    }
 
     let body_str = match String::from_utf8(body) {
         Ok(s) => s,

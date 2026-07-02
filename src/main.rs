@@ -63,7 +63,7 @@ impl CIDDevice {
     }
 
     fn show_state(&self) -> String {
-        format!("{}", cid::output::format::format_state(self.state_machine.current()))
+        cid::output::format::format_state(self.state_machine.current()).to_string()
     }
 
     fn show_economy(&self) -> String {
@@ -307,7 +307,7 @@ fn main() {
                         Some(vr) => format!("{} (expected={}, computed={}, diff={})",
                             vr.status, cid::tanto::math::format_f64(vr.expected),
                             cid::tanto::math::format_f64(vr.computed), cid::tanto::math::format_f64(vr.diff)),
-                        None => format!("Error: verify needs: verify <expected> <expr>"),
+                        None => "Error: verify needs: verify <expected> <expr>".to_string(),
                     },
                     "test" => {
                         let correctness = cid::tanto::verify::run_self_test();
@@ -389,14 +389,11 @@ fn parse_proxy_args(args: &[String]) -> ProxyConfig {
                     i += 1;
                 }
             }
-            "--key" => {
-                if i + 1 < args.len() {
+            "--key"
+                if i + 1 < args.len() => {
                     key = args[i + 1].clone();
                     i += 2;
-                } else {
-                    i += 1;
                 }
-            }
             _ => {
                 i += 1;
             }
@@ -437,7 +434,7 @@ fn process_line(line: &str, device: &mut CIDDevice) -> String {
             let context = parts[2];
             let mut candidates = Vec::new();
             
-            for (_i, token) in tokens.iter().enumerate() {
+            for token in tokens.iter() {
                 let hash: u32 = token.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
                 let logit = (hash % 1000) as f64 / 1000.0;
                 let candidate = TokenCandidate::new(hash, token, logit);
@@ -642,7 +639,7 @@ fn process_line(line: &str, device: &mut CIDDevice) -> String {
                         Some(vr) => format!("{} (expected={}, computed={}, diff={})",
                             vr.status, cid::tanto::math::format_f64(vr.expected),
                             cid::tanto::math::format_f64(vr.computed), cid::tanto::math::format_f64(vr.diff)),
-                        None => format!("Error: verify needs: verify <expected> <expr>"),
+                        None => "Error: verify needs: verify <expected> <expr>".to_string(),
                     }
                 }
                 "test" => {
