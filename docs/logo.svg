@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="hatGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="bandGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <!-- Brim -->
+  <ellipse cx="256" cy="380" rx="200" ry="40" fill="url(#hatGrad)" opacity="0.9"/>
+  <!-- Cone -->
+  <path d="M256 40 L120 360 Q256 320 392 360 Z" fill="url(#hatGrad)"/>
+  <!-- Band -->
+  <path d="M180 340 Q256 310 332 340 L340 360 Q256 330 172 360 Z" fill="url(#bandGrad)"/>
+  <!-- Buckle -->
+  <rect x="244" y="330" width="24" height="28" rx="3" fill="#1e1b4b"/>
+  <rect x="250" y="336" width="12" height="16" rx="2" fill="url(#bandGrad)"/>
+  <!-- Star on tip -->
+  <polygon points="256,20 262,34 278,34 266,44 270,58 256,50 242,58 246,44 234,34 250,34" fill="url(#starGrad)"/>
+  <!-- Magic sparkles -->
+  <circle cx="160" cy="180" r="4" fill="#a78bfa" opacity="0.6"/>
+  <circle cx="340" cy="220" r="3" fill="#a78bfa" opacity="0.4"/>
+  <circle cx="180" cy="280" r="2.5" fill="#a78bfa" opacity="0.5"/>
+  <circle cx="350" cy="300" r="3.5" fill="#c084fc" opacity="0.3"/>
+  <!-- Validation rings (subtle) -->
+  <circle cx="256" cy="240" r="100" fill="none" stroke="#818cf8" stroke-width="0.5" opacity="0.15"/>
+  <circle cx="256" cy="240" r="130" fill="none" stroke="#818cf8" stroke-width="0.3" opacity="0.1"/>
+</svg>

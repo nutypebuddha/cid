@@ -1,7 +1,12 @@
-# CID - Calibrated Inference Device
+# CID — Calibrated Inference Device
+
+<p align="center">
+  <img src="docs/logo.svg" width="160" alt="CID logo" />
+</p>
 
 [![License](https://img.shields.io/badge/license-unlicense-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://rustup.rs)
+[![Wintermore Housekeeping](https://img.shields.io/badge/by-Wintermore%20Housekeeping-6366f1)](https://codeberg.org/NutypeBuddha)
 
 **A per-token validation layer for LLMs using pachinko mechanics to enforce mathematical, logical, and factual constraints at inference time.**
 
@@ -327,4 +332,4 @@ This project is in the public domain. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Made with ❤️ by NutypeBuddha**
+**Wintermore Housekeeping** — keeping LLMs in line.
