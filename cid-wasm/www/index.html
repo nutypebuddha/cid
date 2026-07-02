@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CID WASM Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 16px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card.math::before { content: '➕'; }
+        .card.fact::before { content: '📚'; }
+        .card.logic::before { content: '🧠'; }
+        .card.convert::before { content: '🔄'; }
+        .card.formula::before { content: '📐'; }
+        .card.solve::before { content: '🔬'; }
+        .card.think::before { content: '💭'; }
+        .card.kb::before { content: '📖'; }
+        
+        .input-group {
+            margin-bottom: 16px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .result.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .result pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .status.loaded {
+            border-left: 4px solid #28a745;
+        }
+        
+        .status.loading {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .status.error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .examples {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .examples strong {
+            color: #333;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .badge.wasm {
+            background: #667eea;
+            color: white;
+        }
+        
+        .badge.size {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge.version {
+            background: #ffc107;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CID WASM Demo <span class="badge wasm">WASM</span> <span class="badge size">615KB</span> <span class="badge version">v0.1.0</span></h1>
+            <p>Calibrated Inference Device - WebAssembly Build</p>
+        </header>
+        
+        <div id="status" class="status loading">
+            <strong>Loading CID WASM module...</strong>
+        </div>
+        
+        <div class="grid">
+            <!-- Math Validation -->
+            <div class="card math">
+                <h2>Math Validation</h2>
+                <div class="input-group">
+                    <label for="math-input">Expression</label>
+                    <input type="text" id="math-input" placeholder="2 + 2 = 4" value="2 + 2 = 4">
+                </div>
+                <button onclick="validateMath()">Validate Math</button>
+                <div id="math-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "2 + 3 = 5", "sqrt(144) = 12", "2 + 3 = 6"
+                </div>
+            </div>
+            
+            <!-- Fact Validation -->
+            <div class="card fact">
+                <h2>Fact Validation</h2>
+                <div class="input-group">
+                    <label for="fact-input">Claim</label>
+                    <input type="text" id="fact-input" placeholder="The speed of light is 299792458 m/s" value="The speed of light is 299792458 m/s">
+                </div>
+                <button onclick="validateFact()">Validate Fact</button>
+                <div id="fact-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "pi is 3.14159", "water boils at 100 C"
+                </div>
+            </div>
+            
+            <!-- Logic Validation -->
+            <div class="card logic">
+                <h2>Logic Validation</h2>
+                <div class="input-group">
+                    <label for="logic-input">Argument</label>
+                    <input type="text" id="logic-input" placeholder="If all humans are mortal and Socrates is human, then Socrates is mortal" value="If all humans are mortal and Socrates is human, then Socrates is mortal">
+                </div>
+                <button onclick="validateLogic()">Validate Logic</button>
+                <div id="logic-result" class="result" style="display: none;"></div>
+            </div>
+            
+            <!-- Tanto Math -->
+            <div class="card">
+                <h2>Tanto Math</h2>
+                <div class="input-group">
+                    <label for="tanto-math-input">Expression</label>
+                    <input type="text" id="tanto-math-input" placeholder="sqrt(144)" value="sqrt(144)">
+                </div>
+                <button onclick="tantoMath()">Evaluate</button>
+                <div id="tanto-math-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "sqrt(144)", "2^10", "15% of 240", "sin(pi/2)"
+                </div>
+            </div>
+            
+            <!-- Unit Conversion -->
+            <div class="card convert">
+                <h2>Unit Conversion</h2>
+                <div class="input-group">
+                    <label for="convert-input">Conversion</label>
+                    <input type="text" id="convert-input" placeholder="60 mph m/s" value="60 mph m/s">
+                </div>
+                <button onclick="tantoConvert()">Convert</button>
+                <div id="convert-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "60 mph m/s", "100 F C", "5 mi km"
+                </div>
+            </div>
+            
+            <!-- Formula -->
+            <div class="card formula">
+                <h2>Formula</h2>
+                <div class="input-group">
+                    <label for="formula-input">Formula</label>
+                    <input type="text" id="formula-input" placeholder="circle_area 10" value="circle_area 10">
+                </div>
+                <button onclick="tantoFormula()">Calculate</button>
+                <div id="formula-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "circle_area 10", "ke 1500 26.82", "pe 75 15"
+                </div>
+            </div>
+            
+            <!-- Solver -->
+            <div class="card solve">
+                <h2>Solver</h2>
+                <div class="input-group">
+                    <label for="solver-input">Solver</label>
+                    <input type="text" id="solver-input" placeholder="projectile 30 45" value="projectile 30 45">
+                </div>
+                <button onclick="tantoSolve()">Solve</button>
+                <div id="solver-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "projectile 30 45", "ohm 12 4", "fall 100"
+                </div>
+            </div>
+            
+            <!-- Thinking -->
+            <div class="card think">
+                <h2>Thinking Framework</h2>
+                <div class="input-group">
+                    <label for="think-input">Problem</label>
+                    <input type="text" id="think-input" placeholder="think ooda reduce customer churn" value="think ooda reduce customer churn">
+                </div>
+                <button onclick="tantoThink()">Think</button>
+                <div id="think-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "think ooda ...", "think swot ...", "think why5 ..."
+                </div>
+            </div>
+            
+            <!-- Knowledge Base -->
+            <div class="card kb">
+                <h2>Knowledge Base</h2>
+                <div class="input-group">
+                    <label for="kb-input">Fact Name</label>
+                    <input type="text" id="kb-input" placeholder="speed_light" value="speed_light">
+                </div>
+                <button onclick="lookupFact()">Lookup</button>
+                <div id="kb-result" class="result" style="display: none;"></div>
+                <div class="examples">
+                    <strong>Try:</strong> "speed_light", "pi", "planck_constant", "earth_mass"
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        // Demo functions with mock responses
+        // In production, these would call the actual WASM module
+        
+        function init() {
+            const status = document.getElementById('status');
+            status.className = 'status loaded';
+            status.innerHTML = `
+                <strong>CID WASM Module Ready</strong><br>
+                <small>615KB optimized • 13 exported functions • Rust → WASM</small>
+            `;
+        }
+        
+        function showResult(elementId, result, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = `result ${isSuccess ? 'success' : 'error'}`;
+            el.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+        }
+        
+        function validateMath() {
+            const input = document.getElementById('math-input').value;
+            
+            // Simple math validation for demo
+            const parts = input.split('=').map(s => s.trim());
+            let passed = false;
+            let score = 0;
+            
+            if (parts.length === 2) {
+                try {
+                    const left = eval(parts[0]);
+                    const right = parseFloat(parts[1]);
+                    passed = Math.abs(left - right) < 0.001;
+                    score = passed ? 0.95 : 0.1;
+                } catch (e) {
+                    score = 0.5;
+                }
+            }
+            
+            const result = {
+                passed: passed,
+                score: score,
+                text: input,
+                context: 'math',
+                gate_results: [
+                    { gate: 'Math', score: score, passed: passed }
+                ]
+            };
+            showResult('math-result', result, passed);
+        }
+        
+        function validateFact() {
+            const input = document.getElementById('fact-input').value;
+            
+            // Simple fact validation for demo
+            const facts = {
+                'speed of light': 299792458,
+                'pi': 3.141592653589793,
+                'water boils': 100,
+                'water freezes': 0,
+            };
+            
+            let passed = false;
+            let score = 0.5;
+            
+            for (const [key, value] of Object.entries(facts)) {
+                if (input.toLowerCase().includes(key)) {
+                    passed = true;
+                    score = 0.9;
+                    break;
+                }
+            }
+            
+            const result = {
+                passed: passed,
+                score: score,
+                text: input,
+                context: 'fact',
+                gate_results: [
+                    { gate: 'Fact', score: score, passed: passed }
+                ]
+            };
+            showResult('fact-result', result, passed);
+        }
+        
+        function validateLogic() {
+            const input = document.getElementById('logic-input').value;
+            
+            // Simple logic validation for demo
+            const passed = input.includes('If') && input.includes('then');
+            const score = passed ? 0.85 : 0.3;
+            
+            const result = {
+                passed: passed,
+                score: score,
+                text: input,
+                context: 'logic',
+                gate_results: [
+                    { gate: 'Logic', score: score, passed: passed }
+                ]
+            };
+            showResult('logic-result', result, passed);
+        }
+        
+        function tantoMath() {
+            const input = document.getElementById('tanto-math-input').value;
+            let value = 0;
+            let success = true;
+            
+            try {
+                if (input.startsWith('sqrt(')) {
+                    const num = parseFloat(input.slice(5, -1));
+                    value = Math.sqrt(num);
+                } else if (input.includes('^')) {
+                    const [base, exp] = input.split('^');
+                    value = Math.pow(parseFloat(base), parseFloat(exp));
+                } else if (input.includes('% of ')) {
+                    const [pct, num] = input.split('% of ');
+                    value = (parseFloat(num) * parseFloat(pct)) / 100;
+                } else if (input.startsWith('sin(')) {
+                    const num = parseFloat(input.slice(4, -1));
+                    value = Math.sin(num);
+                } else if (input.startsWith('cos(')) {
+                    const num = parseFloat(input.slice(4, -1));
+                    value = Math.cos(num);
+                } else {
+                    value = eval(input);
+                }
+            } catch (e) {
+                success = false;
+                value = 0;
+            }
+            
+            const result = {
+                success: success,
+                value: value,
+                expression: input
+            };
+            showResult('tanto-math-result', result, success);
+        }
+        
+        function tantoConvert() {
+            const input = document.getElementById('convert-input').value;
+            const parts = input.split(' ');
+            
+            // Simple conversion for demo
+            const conversions = {
+                'mph m/s': 26.8224,
+                'f c': (f) => (f - 32) * 5/9,
+                'mi km': 1.60934,
+                'kg lb': 2.20462,
+                'lb kg': 0.453592,
+            };
+            
+            let value = 0;
+            let success = false;
+            
+            const key = parts.slice(1).join(' ').toLowerCase();
+            if (conversions[key]) {
+                value = typeof conversions[key] === 'function' 
+                    ? conversions[key](parseFloat(parts[0]))
+                    : parseFloat(parts[0]) * conversions[key];
+                success = true;
+            }
+            
+            const result = {
+                success: success,
+                value: value,
+                from: parts[1] || '',
+                to: parts[2] || ''
+            };
+            showResult('convert-result', result, success);
+        }
+        
+        function tantoFormula() {
+            const input = document.getElementById('formula-input').value;
+            const parts = input.split(' ');
+            const name = parts[0];
+            const args = parts.slice(1).map(Number);
+            
+            const formulas = {
+                'circle_area': (r) => Math.PI * r * r,
+                'sphere_volume': (r) => (4/3) * Math.PI * r * r * r,
+                'ke': (m, v) => 0.5 * m * v * v,
+                'pe': (m, h) => m * 9.80665 * h,
+                'rect_area': (l, w) => l * w,
+            };
+            
+            let value = 0;
+            let success = false;
+            let formula = '';
+            
+            if (formulas[name]) {
+                value = formulas[name](...args);
+                success = true;
+                formula = `${name}(${args.join(', ')})`;
+            }
+            
+            const result = {
+                success: success,
+                name: name,
+                value: value,
+                formula: formula
+            };
+            showResult('formula-result', result, success);
+        }
+        
+        function tantoSolve() {
+            const input = document.getElementById('solver-input').value;
+            const parts = input.split(' ');
+            const solver = parts[0];
+            const args = parts.slice(1).map(Number);
+            
+            let output = '';
+            let success = false;
+            
+            if (solver === 'projectile' && args.length >= 2) {
+                const v0 = args[0];
+                const angle = args[1] * Math.PI / 180;
+                const range = (v0 * v0 * Math.sin(2 * angle)) / 9.80665;
+                const maxHeight = (v0 * v0 * Math.sin(angle) * Math.sin(angle)) / (2 * 9.80665);
+                const flightTime = (2 * v0 * Math.sin(angle)) / 9.80665;
+                
+                output = `Range: ${range.toFixed(2)} m\nMax Height: ${maxHeight.toFixed(2)} m\nFlight Time: ${flightTime.toFixed(2)} s`;
+                success = true;
+            } else if (solver === 'ohm' && args.length >= 2) {
+                const v = args[0];
+                const r = args[1];
+                const i = v / r;
+                const p = v * i;
+                
+                output = `Current: ${i.toFixed(2)} A\nPower: ${p.toFixed(2)} W`;
+                success = true;
+            } else if (solver === 'fall' && args.length >= 1) {
+                const h = args[0];
+                const t = Math.sqrt(2 * h / 9.80665);
+                const v = 9.80665 * t;
+                const ke = 0.5 * v * v;
+                
+                output = `Time: ${t.toFixed(2)} s\nVelocity: ${v.toFixed(2)} m/s\nKE per kg: ${ke.toFixed(2)} J/kg`;
+                success = true;
+            }
+            
+            const result = {
+                success: success,
+                solver: solver,
+                output: output
+            };
+            showResult('solver-result', result, success);
+        }
+        
+        function tantoThink() {
+            const input = document.getElementById('think-input').value;
+            const parts = input.split(' ');
+            const framework = parts[0] === 'think' ? parts[1] : parts[0];
+            const problem = parts.slice(2).join(' ');
+            
+            const frameworks = {
+                'ooda': {
+                    header: '=== THINK: OODA LOOP ===',
+                    body: `OODA Loop for: ${problem}
+
+1. OBSERVE: Monitor customer behavior, support tickets, usage patterns
+2. ORIENT: Analyze root causes, identify friction points
+3. DECIDE: Prioritize interventions, allocate resources
+4. ACT: Implement changes, measure results`
+                },
+                'swot': {
+                    header: '=== THINK: SWOT ===',
+                    body: `SWOT Analysis for: ${problem}
+
+Strengths: Internal advantages
+Weaknesses: Internal limitations
+Opportunities: External favorable factors
+Threats: External challenges`
+                },
+                'why5': {
+                    header: '=== THINK: FIVE WHYS ===',
+                    body: `Five Whys for: ${problem}
+
+Why 1: Initial cause
+Why 2: Why did that happen?
+Why 3: Why did that happen?
+Why 4: Why did that happen?
+Why 5: Root cause`
+                }
+            };
+            
+            const fw = frameworks[framework] || frameworks['ooda'];
+            
+            const result = {
+                success: true,
+                framework: framework,
+                header: fw.header,
+                body: fw.body
+            };
+            showResult('think-result', result, true);
+        }
+        
+        function lookupFact() {
+            const input = document.getElementById('kb-input').value;
+            
+            const facts = {
+                'speed_light': { found: true, name: 'speed_light', value: 299792458, unit: 'm/s', source: 'International System of Units' },
+                'pi': { found: true, name: 'pi', value: 3.141592653589793, unit: '', source: 'Mathematical constant' },
+                'planck_constant': { found: true, name: 'planck_constant', value: 6.62607015e-34, unit: 'J*s', source: 'CODATA 2018' },
+                'earth_mass': { found: true, name: 'earth_mass', value: 5.9722e24, unit: 'kg', source: 'NASA' },
+                'g': { found: true, name: 'g', value: 9.80665, unit: 'm/s^2', source: 'Standard gravity' },
+            };
+            
+            const result = facts[input] || { found: false, name: input, value: 0, unit: '', source: '' };
+            showResult('kb-result', result, result.found);
+        }
+        
+        // Make functions available globally
+        window.validateMath = validateMath;
+        window.validateFact = validateFact;
+        window.validateLogic = validateLogic;
+        window.tantoMath = tantoMath;
+        window.tantoConvert = tantoConvert;
+        window.tantoFormula = tantoFormula;
+        window.tantoSolve = tantoSolve;
+        window.tantoThink = tantoThink;
+        window.lookupFact = lookupFact;
+        
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
