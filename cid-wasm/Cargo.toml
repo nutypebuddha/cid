@@ -1,0 +1,41 @@
+[package]
+name = "cid-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WebAssembly bindings for CID (Calibrated Inference Device)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+cid = { path = ".." }
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "console",
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Text",
+]
+
+[dependencies.js-sys]
+version = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true

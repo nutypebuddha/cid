@@ -1,0 +1,195 @@
+use crate::core::ball::{Ball, TokenCandidate};
+use crate::core::pin::{PinField, Gate};
+use crate::core::pocket::Pocket;
+use crate::state::machine::{StateMachine, State};
+use crate::economy::tray::BallEconomy;
+use crate::economy::budget::Budget;
+use crate::kb::facts::KnowledgeBase;
+use crate::gates::{math::MathGate, logic::LogicGate, fact::FactGate, confidence::ConfidenceGate, formal::FormalGate, GateValidator};
+use super::result::{ValidationResult, GateScore, CidError, CidResult};
+use super::request::ValidationRequest;
+
+pub struct Pipeline {
+    pub pin_field: PinField,
+    pub state_machine: StateMachine,
+    pub economy: BallEconomy,
+    pub budget: Budget,
+    pub kb: KnowledgeBase,
+}
+
+impl Pipeline {
+    pub fn new() -> Self {
+        Pipeline {
+            pin_field: PinField::new(),
+            state_machine: StateMachine::new(),
+            economy: BallEconomy::new(1000),
+            budget: Budget::new(1_000_000, 10.0),
+            kb: KnowledgeBase::new(),
+        }
+    }
+
+    pub fn with_pins(mut self, pin_field: PinField) -> Self {
+        self.pin_field = pin_field;
+        self
+    }
+
+    pub fn with_budget(mut self, budget: Budget) -> Self {
+        self.budget = budget;
+        self
+    }
+
+    pub fn with_kb(mut self, kb: KnowledgeBase) -> Self {
+        self.kb = kb;
+        self
+    }
+
+    pub fn validate(&mut self, request: &ValidationRequest, domain: Option<&str>) -> CidResult<ValidationResult> {
+        if self.budget.is_exhausted() {
+            return Err(CidError::BudgetExhausted {
+                remaining_tokens: self.budget.remaining_tokens(),
+                remaining_cost: self.budget.remaining_cost(),
+            });
+        }
+
+        let _effective_domain = domain.or(request.domain.as_deref()).unwrap_or("general");
+        
+        let mut result = ValidationResult::new(&request.text);
+        
+        if request.has_candidates() {
+            let candidates = self.validate_candidates(&request.candidates, &request.context)?;
+            let validated_text = candidates.iter()
+                .find(|b| b.validated)
+                .map(|b| b.candidate.token.clone())
+                .unwrap_or_else(|| request.text.clone());
+            
+            let gate_scores = candidates.first()
+                .map(|b| b.gate_results.iter().map(GateScore::from_gate_result).collect())
+                .unwrap_or_default();
+
+            let confidence = candidates.first()
+                .map(|b| b.total_score)
+                .unwrap_or(0.0);
+
+            let passed = candidates.iter().any(|b| b.validated);
+
+            result = result
+                .with_gate_scores(gate_scores)
+                .with_confidence(confidence)
+                .with_passed(passed);
+            
+            if passed {
+                result.validated_text = validated_text;
+            }
+        } else {
+            let ball = self.validate_single_token(&request.text, &request.context)?;
+            
+            let gate_scores = ball.gate_results.iter().map(GateScore::from_gate_result).collect();
+            let confidence = ball.total_score;
+            let passed = ball.validated;
+
+            result = result
+                .with_gate_scores(gate_scores)
+                .with_confidence(confidence)
+                .with_passed(passed);
+            
+            if passed {
+                result.validated_text = request.text.clone();
+            }
+        }
+
+        result.state = self.state_machine.current().clone();
+        result.cost_usd = self.economy.total_cost_usd();
+
+        self.budget.spend_tokens(1);
+        self.economy.spend(1);
+
+        if result.passed {
+            self.state_machine.transition(true);
+            self.economy.win(1);
+        } else {
+            self.state_machine.transition(false);
+        }
+
+        Ok(result)
+    }
+
+    pub fn validate_single_token(&self, token: &str, context: &str) -> CidResult<Ball> {
+        let candidate = TokenCandidate::new(0, token, 0.5);
+        let mut ball = Ball::new(candidate);
+        
+        for pin in self.pin_field.pins.iter() {
+            if !pin.enabled {
+                continue;
+            }
+            
+                let result = match pin.gate {
+                    Gate::Math => MathGate::new().validate(&mut ball, context),
+                    Gate::Logic => LogicGate::new().validate(&mut ball, context),
+                    Gate::Fact => FactGate::new(&self.kb).validate(&mut ball, context),
+                    Gate::Confidence => ConfidenceGate::with_platt_for_domain(context).validate(&mut ball, context),
+                    Gate::Formal => FormalGate::new().validate(&mut ball, context),
+                };
+                
+                ball.add_result(result);
+            }
+            
+            Ok(ball)
+        }
+
+        pub fn validate_candidates(&self, candidates: &[String], context: &str) -> CidResult<Vec<Ball>> {
+            let mut balls = Vec::new();
+            
+            for (i, token) in candidates.iter().enumerate() {
+                let candidate = TokenCandidate::new(i as u32, token, 0.5);
+                let mut ball = Ball::new(candidate);
+                
+                for pin in self.pin_field.pins.iter() {
+                    if !pin.enabled {
+                        continue;
+                    }
+                    
+                    let result = match pin.gate {
+                        Gate::Math => MathGate::new().validate(&mut ball, context),
+                        Gate::Logic => LogicGate::new().validate(&mut ball, context),
+                        Gate::Fact => FactGate::new(&self.kb).validate(&mut ball, context),
+                        Gate::Confidence => ConfidenceGate::with_platt_for_domain(context).validate(&mut ball, context),
+                        Gate::Formal => FormalGate::new().validate(&mut ball, context),
+                    };
+                
+                ball.add_result(result);
+            }
+            
+            balls.push(ball);
+        }
+        
+        Ok(balls)
+    }
+
+    pub fn select_best(&self, candidates: Vec<Ball>) -> Option<Pocket> {
+        Pocket::select_best(candidates)
+    }
+
+    pub fn state(&self) -> &State {
+        self.state_machine.current()
+    }
+
+    pub fn economy(&self) -> &BallEconomy {
+        &self.economy
+    }
+
+    pub fn budget(&self) -> &Budget {
+        &self.budget
+    }
+
+    pub fn reset(&mut self) {
+        self.state_machine.reset();
+        self.economy.reset(1000);
+        self.budget.reset();
+    }
+}
+
+impl Default for Pipeline {
+    fn default() -> Self {
+        Self::new()
+    }
+}

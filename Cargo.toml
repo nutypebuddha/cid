@@ -1,0 +1,55 @@
+[workspace]
+members = [".", "cid-wasm"]
+
+[package]
+name = "cid"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["NutypeBuddha"]
+description = "CID (Calibrated Inference Device) — deterministic validation layer for LLMs with Tanto compute engine"
+license = "Unlicense"
+repository = "https://codeberg.org/NutypeBuddha/cid"
+homepage = "https://codeberg.org/NutypeBuddha/cid"
+documentation = "https://docs.rs/cid"
+readme = "README.md"
+keywords = ["llm", "validation", "ai", "inference", "pachinko"]
+categories = ["command-line-utilities", "parser-implementations", "web-programming"]
+exclude = [
+    "target/",
+    "cid-wasm/target/",
+    "*.md",
+    ".gitignore",
+]
+
+[[bin]]
+name = "cid"
+path = "src/main.rs"
+
+[lib]
+name = "cid"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+[[bench]]
+name = "gate_benchmark"
+harness = false
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[dependencies]
+ureq = { version = "3", features = ["json"], optional = true }
+
+[features]
+proxy = ["ureq"]
