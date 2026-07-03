@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use cid::core::ball::{TokenCandidate, Ball};
 use cid::gates::{math::MathGate, logic::LogicGate, fact::FactGate, confidence::ConfidenceGate, formal::FormalGate, GateValidator};
+use cid::kb::facts::KnowledgeBase;
 
 fn benchmark_math_gate(c: &mut Criterion) {
     let gate = MathGate::new();
@@ -27,7 +28,8 @@ fn benchmark_logic_gate(c: &mut Criterion) {
 }
 
 fn benchmark_fact_gate(c: &mut Criterion) {
-    let gate = FactGate::new();
+    let kb = KnowledgeBase::new();
+    let gate = FactGate::new(&kb);
     let candidate = TokenCandidate::new(0, "3.14159", 0.5);
     
     c.bench_function("fact_gate_validate", |b| {
@@ -64,6 +66,7 @@ fn benchmark_formal_gate(c: &mut Criterion) {
 
 fn benchmark_full_validation(c: &mut Criterion) {
     let candidate = TokenCandidate::new(0, "42", 0.5);
+    let kb = KnowledgeBase::new();
     
     c.bench_function("full_validation_pipeline", |b| {
         b.iter(|| {
@@ -71,7 +74,7 @@ fn benchmark_full_validation(c: &mut Criterion) {
             
             let math_gate = MathGate::new();
             let logic_gate = LogicGate::new();
-            let fact_gate = FactGate::new();
+            let fact_gate = FactGate::new(&kb);
             let confidence_gate = ConfidenceGate::new(0.5);
             let formal_gate = FormalGate::new();
             
