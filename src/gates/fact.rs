@@ -12,25 +12,116 @@ impl<'a> FactGate<'a> {
         FactGate { kb }
     }
 
+    /// Extract numbers from natural language text.
+    /// Handles: "68 million", "3.2 billion", "900 million", "299,792,458"
+    fn extract_numbers(text: &str) -> Vec<f64> {
+        let mut numbers = Vec::new();
+        let words: Vec<&str> = text.split_whitespace().collect();
+        
+        for (i, word) in words.iter().enumerate() {
+            let clean = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
+            if let Ok(num) = clean.parse::<f64>() {
+                // Check next word for multiplier
+                let multiplier = if i + 1 < words.len() {
+                    match words[i + 1].to_lowercase().as_str() {
+                        "million" | "m" => 1_000_000.0,
+                        "billion" | "b" => 1_000_000_000.0,
+                        "trillion" | "t" => 1_000_000_000_000.0,
+                        "thousand" | "k" => 1_000.0,
+                        "hundred" | "h" => 100.0,
+                        _ => 1.0,
+                    }
+                } else {
+                    1.0
+                };
+                numbers.push(num * multiplier);
+            }
+        }
+        numbers
+    }
+
+    /// Extract unit hints from text (e.g., "population of France is 68 million")
+    fn extract_unit_hint(text: &str) -> Option<String> {
+        let lower = text.to_lowercase();
+        let unit_patterns = [
+            ("population", "population"),
+            ("speed of", "speed"),
+            ("mass of", "mass"),
+            ("distance", "distance"),
+            ("temperature", "temperature"),
+            ("density", "density"),
+            ("radius", "radius"),
+            ("diameter", "diameter"),
+            ("height", "height"),
+            ("weight", "weight"),
+            ("energy", "energy"),
+            ("force", "force"),
+            ("pressure", "pressure"),
+            ("volume", "volume"),
+            ("area", "area"),
+            ("luminosity", "luminosity"),
+        ];
+        
+        for (pattern, unit) in &unit_patterns {
+            if lower.contains(pattern) {
+                return Some(unit.to_string());
+            }
+        }
+        None
+    }
+
+    /// Find KB facts that match the context by unit hint or keyword.
+    fn find_matching_facts(&self, context: &str, unit_hint: &Option<String>) -> Vec<&crate::kb::facts::Fact> {
+        let lower_context = context.to_lowercase();
+        let mut matches = Vec::new();
+        
+        for fact in &self.kb.facts {
+            // Match by unit hint
+            if let Some(ref hint) = unit_hint {
+                if fact.unit.to_lowercase().contains(hint) || fact.name.to_lowercase().contains(hint) {
+                    matches.push(fact);
+                    continue;
+                }
+            }
+            // Match by context keywords
+            if lower_context.contains(&fact.name.to_lowercase()) {
+                matches.push(fact);
+            }
+            // Match by domain keywords in fact name
+            let fact_words: Vec<&str> = fact.name.split(|c: char| !c.is_alphanumeric()).filter(|s| !s.is_empty()).collect();
+            for fw in &fact_words {
+                if lower_context.contains(&fw.to_lowercase()) {
+                    matches.push(fact);
+                    break;
+                }
+            }
+        }
+        matches
+    }
+
     fn check_fact_exists(&self, token: &str, context: &str) -> (bool, f64) {
         let lower_token = token.to_ascii_lowercase();
         let lower_context = context.to_ascii_lowercase();
 
+        // Direct lookup
         if let Some(fact) = self.kb.lookup(&lower_token) {
             let source_score = if fact.source.is_empty() { 0.9 } else { 0.95 };
             return (true, source_score);
         }
 
+        // Check if any fact name appears in token or context
         for fact in &self.kb.facts {
             if lower_context.contains(&fact.name) || lower_token.contains(&fact.name) {
                 return (true, 0.95);
             }
         }
 
-        if token.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-' || c == b'+' || c == b'e' || c == b'E') {
+        // Pure numbers pass (will be checked for consistency later)
+        if token.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-' || c == b'+' || c == b'e' || b'E' == c) {
             return (true, 0.8);
         }
 
+        // Keyword search
         if !self.kb.search(&lower_token).is_empty() || !self.kb.search(&lower_context).is_empty() {
             return (true, 0.85);
         }
@@ -57,10 +148,39 @@ impl<'a> FactGate<'a> {
         let lower_token = token.to_lowercase();
         let lower_context = context.to_lowercase();
 
-        if let (Ok(token_val), Ok(context_val)) = (lower_token.parse::<f64>(), lower_context.parse::<f64>()) {
+        // Only do NL number extraction when we have a specific unit hint.
+        // Generic contexts like "number", "general", "text" should not trigger KB matching.
+        let unit_hint = Self::extract_unit_hint(context);
+        if unit_hint.is_some() {
+            let token_numbers = Self::extract_numbers(token);
+            if let Some(&claimed_value) = token_numbers.first() {
+                let matching_facts = self.find_matching_facts(context, &unit_hint);
+                
+                for fact in &matching_facts {
+                    if fact.value != 0.0 {
+                        let ratio = claimed_value / fact.value;
+                        // Within 10% = consistent
+                        if (0.9..=1.1).contains(&ratio) {
+                            return (true, 0.95);
+                        }
+                        // Within factor of 10 = maybe wrong order of magnitude
+                        if (0.1..=10.0).contains(&ratio) {
+                            return (false, 0.3);
+                        }
+                        // Way off = inconsistent
+                        return (false, 0.1);
+                    }
+                }
+            }
+        }
+
+        // Fallback: check direct number-to-number consistency (both token and context are numbers)
+        let token_numbers = Self::extract_numbers(token);
+        let context_numbers = Self::extract_numbers(context);
+        if let (Some(&token_val), Some(&context_val)) = (token_numbers.first(), context_numbers.first()) {
             if context_val != 0.0 {
                 let ratio = token_val / context_val;
-                if ratio > 0.1 && ratio < 10.0 {
+                if (0.9..=1.1).contains(&ratio) {
                     return (true, 0.9);
                 } else {
                     return (false, 0.3);
@@ -68,6 +188,7 @@ impl<'a> FactGate<'a> {
             }
         }
 
+        // Check against direct KB lookup
         if let (Ok(token_val), Some(fact)) = (lower_token.parse::<f64>(), self.kb.lookup(&lower_context)) {
             if fact.value != 0.0 {
                 let ratio = token_val / fact.value;

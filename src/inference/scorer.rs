@@ -1,13 +1,18 @@
 /// Response scorer - evaluates LLM output quality using CID gates.
 /// Returns quality scores and suggested actions.
 use crate::gates::fallacy::FallacyGate;
-use crate::gates::logic::LogicGate;
+use crate::gates::math::MathGate;
+use crate::gates::fact::FactGate;
+use crate::gates::GateValidator;
+use crate::core::ball::{Ball, TokenCandidate};
+use crate::kb::facts::KnowledgeBase;
 use crate::inference::bias::BiasDetector;
 use crate::inference::sanity::SanityChecker;
 
 pub struct ResponseScorer {
     fallacy_gate: FallacyGate,
-    _logic_gate: LogicGate,
+    math_gate: MathGate,
+    kb: KnowledgeBase,
     bias_detector: BiasDetector,
     sanity_checker: SanityChecker,
 }
@@ -89,7 +94,8 @@ impl ResponseScorer {
     pub fn new() -> Self {
         ResponseScorer {
             fallacy_gate: FallacyGate::new(),
-            _logic_gate: LogicGate::new(),
+            math_gate: MathGate::new(),
+            kb: KnowledgeBase::new(),
             bias_detector: BiasDetector::new(),
             sanity_checker: SanityChecker::new(),
         }
@@ -138,6 +144,14 @@ impl ResponseScorer {
         let sanity_score = self.check_numeric_sanity(response, &mut issues);
         scores.push(sanity_score);
 
+        // Check math expressions using real MathGate
+        let math_score = self.check_math_expressions(response, context, &mut issues);
+        scores.push(math_score);
+
+        // Check facts using real FactGate
+        let fact_score = self.check_facts(response, context, &mut issues);
+        scores.push(fact_score);
+
         // Check logic (basic patterns)
         let logic_score = self.check_logic_patterns(response, context, &mut issues);
         scores.push(logic_score);
@@ -147,7 +161,7 @@ impl ResponseScorer {
         scores.push(coherence_score);
 
         // Calculate overall score (weighted average)
-        let weights = [0.2, 0.15, 0.15, 0.25, 0.25]; // fallacy, bias, sanity, logic, coherence
+        let weights = [0.15, 0.1, 0.1, 0.2, 0.2, 0.1, 0.15]; // fallacy, bias, sanity, math, fact, logic, coherence
         let overall_score = scores.iter().zip(weights.iter())
             .map(|(s, w)| s * w)
             .sum::<f64>();
@@ -160,15 +174,117 @@ impl ResponseScorer {
 
         QualityReport {
             overall_score,
-            math_score: 1.0, // Placeholder - would need math gate integration
+            math_score,
             logic_score,
-            fact_score: 1.0, // Placeholder - would need fact gate integration
+            fact_score,
             fallacy_score,
             bias_score,
             confidence,
             action,
             issues,
         }
+    }
+
+    /// Check math expressions in text using the real MathGate.
+    fn check_math_expressions(&self, text: &str, context: &str, issues: &mut Vec<QualityIssue>) -> f64 {
+        let mut scores = Vec::new();
+
+        // Extract equations (patterns like "X = Y" or "X + Y = Z")
+        for word in text.split_whitespace() {
+            if word.contains('=') || word.contains('+') || word.contains('-') || word.contains('*') || word.contains('/') {
+                let hash: u32 = word.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
+                let logit = (hash % 1000) as f64 / 1000.0;
+                let candidate = TokenCandidate::new(hash, word, logit);
+                let mut ball = Ball::new(candidate);
+                let result = self.math_gate.validate(&mut ball, context);
+                scores.push(result.score);
+
+                if !result.passed {
+                    issues.push(QualityIssue {
+                        category: IssueCategory::Math,
+                        description: format!("Math error in '{}': {}", word, result.reason.as_deref().unwrap_or("unknown")),
+                        severity: IssueSeverity::High,
+                        confidence: 1.0 - result.score,
+                    });
+                }
+            }
+        }
+
+        // Also check full sentences for embedded math
+        for sentence in text.split(['.', '!', '?', ',']) {
+            let trimmed = sentence.trim();
+            if trimmed.is_empty() { continue; }
+            // Check if sentence contains numbers and operators
+            let has_numbers = trimmed.split_whitespace().any(|w| w.parse::<f64>().is_ok());
+            let has_operators = trimmed.contains('=') || trimmed.contains('+') || trimmed.contains("equals");
+            if has_numbers && has_operators {
+                let hash: u32 = trimmed.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
+                let logit = (hash % 1000) as f64 / 1000.0;
+                let candidate = TokenCandidate::new(hash, trimmed, logit);
+                let mut ball = Ball::new(candidate);
+                let result = self.math_gate.validate(&mut ball, context);
+                scores.push(result.score);
+
+                if !result.passed {
+                    issues.push(QualityIssue {
+                        category: IssueCategory::Math,
+                        description: format!("Math error: {}", result.reason.as_deref().unwrap_or("invalid expression")),
+                        severity: IssueSeverity::High,
+                        confidence: 1.0 - result.score,
+                    });
+                }
+            }
+        }
+
+        if scores.is_empty() { 1.0 } else { scores.iter().sum::<f64>() / scores.len() as f64 }
+    }
+
+    /// Check factual claims using the real FactGate.
+    fn check_facts(&self, text: &str, context: &str, issues: &mut Vec<QualityIssue>) -> f64 {
+        let mut scores = Vec::new();
+        let fact_gate = FactGate::new(&self.kb);
+
+        // Only check sentences that have BOTH a number AND a factual keyword.
+        // This avoids false positives on generic text with numbers.
+        for sentence in text.split(['.', '!', '?']) {
+            let trimmed = sentence.trim();
+            if trimmed.is_empty() { continue; }
+
+            let lower = trimmed.to_lowercase();
+            let has_number = trimmed.split_whitespace().any(|w| {
+                w.replace([',', '.', '-'], "").parse::<f64>().is_ok()
+            });
+            let has_factual_keyword = lower.contains("is approximately")
+                || lower.contains("equals")
+                || lower.contains("has a mass")
+                || lower.contains("speed of")
+                || lower.contains("distance")
+                || lower.contains("population")
+                || lower.contains("density")
+                || lower.contains("temperature")
+                || lower.contains("is about")
+                || lower.contains("is roughly");
+
+            if has_number && has_factual_keyword {
+                let hash: u32 = trimmed.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
+                let logit = (hash % 1000) as f64 / 1000.0;
+                let candidate = TokenCandidate::new(hash, trimmed, logit);
+                let mut ball = Ball::new(candidate);
+                let result = fact_gate.validate(&mut ball, context);
+                scores.push(result.score);
+
+                if !result.passed {
+                    issues.push(QualityIssue {
+                        category: IssueCategory::Fact,
+                        description: format!("Fact check failed: {}", result.reason.as_deref().unwrap_or("unknown")),
+                        severity: IssueSeverity::High,
+                        confidence: 1.0 - result.score,
+                    });
+                }
+            }
+        }
+
+        if scores.is_empty() { 1.0 } else { scores.iter().sum::<f64>() / scores.len() as f64 }
     }
 
     fn check_numeric_sanity(&self, text: &str, issues: &mut Vec<QualityIssue>) -> f64 {

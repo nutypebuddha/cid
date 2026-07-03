@@ -102,10 +102,9 @@ Commands:
   pins                          Show pin field
   pins adjust <gate> <thresh>   Adjust gate threshold
   economy                       Show ball economy
-  compress <text> [level]       Compress prompt (light/medium/aggressive)
-  score <text>                  Score response quality
-   cache-stats                   Show semantic cache statistics
-   kb list                       List knowledge base
+   compress <text> [level]       Compress prompt (light/medium/aggressive)
+   score <text>                  Score response quality
+    kb list                       List knowledge base
    kb lookup <name>              Lookup fact
    tanto eval <expr>             Evaluate math expression (Tanto engine)
    tanto convert <val> <from> <to>  Unit conversion
@@ -668,6 +667,55 @@ fn process_line(line: &str, device: &mut CIDDevice) -> String {
                 }
                 _ => format!("Unknown tanto subcommand: {}. Try 'help'.", subcmd),
             }
+        }
+        "score" => {
+            let rest = if parts.len() > 1 { line[6..].trim() } else { "" };
+            if rest.is_empty() {
+                return "Usage: score <text>".to_string();
+            }
+            let context = "general";
+            let scorer = cid::inference::ResponseScorer::new();
+            let report = scorer.score(rest, context);
+            let mut output = String::new();
+            output.push_str(&format!("Quality Score: {:.2}\n", report.overall_score));
+            output.push_str(&format!("Confidence: {:.2}\n", report.confidence));
+            output.push_str(&format!("Action: {:?}\n", report.action));
+            if !report.issues.is_empty() {
+                output.push_str("Issues:\n");
+                for issue in &report.issues {
+                    output.push_str(&format!("  [{:?}] {}: {}\n", issue.severity, issue.category, issue.description));
+                }
+            }
+            output
+        }
+        "compress" => {
+            let rest = if parts.len() > 1 { line[8..].trim() } else { "" };
+            if rest.is_empty() {
+                return "Usage: compress <text> [light|medium|aggressive]".to_string();
+            }
+            // Check if last word is a level
+            let (text, level) = if let Some(last_space) = rest.rfind(' ') {
+                let candidate = &rest[last_space + 1..];
+                match candidate {
+                    "light" | "medium" | "aggressive" => (&rest[..last_space], candidate),
+                    _ => (rest, "medium"),
+                }
+            } else {
+                (rest, "medium")
+            };
+            let compression_level = match level {
+                "light" => cid::inference::CompressionLevel::Light,
+                "aggressive" => cid::inference::CompressionLevel::Aggressive,
+                _ => cid::inference::CompressionLevel::Medium,
+            };
+            let compressor = cid::inference::PromptCompressor::new(compression_level);
+            let (compressed, stats) = compressor.compress(text);
+            let mut output = String::new();
+            output.push_str(&format!("Compressed: {}\n", compressed));
+            output.push_str(&format!("Original tokens: {}\n", stats.original_tokens));
+            output.push_str(&format!("Compressed tokens: {}\n", stats.compressed_tokens));
+            output.push_str(&format!("Saved: {} tokens ({:.1}%)\n", stats.saved_tokens, stats.saved_percent));
+            output
         }
         "test" => {
             let mut output = String::from("=== CID SELF-TEST ===\n");
