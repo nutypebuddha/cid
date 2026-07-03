@@ -1,210 +1,208 @@
-# CID — Calibrated Inference Device
-
 <p align="center">
-  <img src="docs/logo.svg" width="160" alt="CID logo" />
+  <img src="docs/logo.svg" width="200" alt="CID — Calibrated Inference Device" />
 </p>
 
-[![License](https://img.shields.io/badge/license-unlicense-blue.svg)](LICENSE)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://rustup.rs)
-[![Version](https://img.shields.io/badge/version-v0.2.0-6366f1)](CHANGELOG.md)
-[![Wintermore Housekeeping](https://img.shields.io/badge/by-Wintermore%20Housekeeping-6366f1)](https://codeberg.org/NutypeBuddha)
+<h1 align="center">CID — Calibrated Inference Device</h1>
 
-**A per-token validation layer for LLMs using pachinko mechanics to enforce mathematical, logical, and factual constraints at inference time.**
+<p align="center">
+  <em>"hm, interesting. your LLM made an error. how... predictable."</em><br>
+  <sub>— CID, probably</sub>
+</p>
 
-[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-unlicense-7C3AED?style=for-the-badge" alt="License" /></a>
+  <a href="https://rustup.rs"><img src="https://img.shields.io/badge/rust-1.70%2B-orange?style=for-the-badge" alt="Rust" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.2.0-06B6D4?style=for-the-badge" alt="Version" /></a>
+  <a href="https://codeberg.org/NutypeBuddha"><img src="https://img.shields.io/badge/codeberg-Wintermore-7C3AED?style=for-the-badge" alt="Wintermore" /></a>
+</p>
+
+<p align="center">
+  <strong>Per-token validation for LLMs.</strong><br>
+  Math gets checked. Logic gets tested. Facts get verified. Every single time.
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-validation-gates">Gates</a> ·
+  <a href="#-mcp-server">MCP</a> ·
+  <a href="#-why-cid">Why CID?</a> ·
+  <a href="https://codeberg.org/NutypeBuddha/cid">Codeberg</a> ·
+  <a href="https://github.com/nutypebuddha/cid">GitHub</a>
+</p>
 
 ---
 
-## Overview
-
-CID acts as a validation gate between LLM output and the real world. Think of LLMs as a river and CID as the dams and structure to maximize them.
+## `// system boot...`
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    CID Validation Pipeline                    │
-├─────────────────────────────────────────────────────────────┤
-│  LLM Output → [Math Gate] → [Logic Gate] → [Fact Gate]     │
-│                    ↓              ↓              ↓           │
-│              [Confidence] → [Fallacy] → [Bias Detection]   │
-│                              ↓                              │
-│                    Validated Output                          │
-└─────────────────────────────────────────────────────────────┘
+ ██████╗██████╗     ██╗███████╗██████╗
+██╔════╝██╔══██╗   ██╔╝██╔════╝██╔══██╗
+██║     ██████╔╝  ██╔╝ █████╗  ██████╔╝
+██║     ██╔══██╗ ██╔╝  ██╔══╝  ██╔══██╗
+╚██████╗██║  ██║██╔╝   ███████╗██║  ██║
+ ╚═════╝╚═╝  ╚═╝╚═╝    ╚══════╝╚═╝  ╚═╝
 ```
 
-## Features
+> **LLMs hallucinate.** They state falsehoods with confidence, make arithmetic errors, and commit logical fallacies.
+> CID is the validation layer between AI output and reality.
 
-### Core Validation Gates
+```
+LLM:  "2 + 3 = 6"
+CID:  ❌ WRONG → auto-fix: "2 + 3 = 5"  [confidence: 0.99]
 
-| Gate | Description | Patterns |
-|------|-------------|----------|
-| **Math** | Equation validation & auto-fix | Arithmetic, algebra, units |
-| **Logic** | Premise/conclusion checking | Deductive, inductive reasoning |
-| **Fact** | Knowledge base lookup | 776+ facts across 12 domains |
-| **Confidence** | Platt scaling calibration | Domain-specific thresholds |
-| **Fallacy** | Logical fallacy detection | 69 patterns, 14 types |
-| **Bias** | Cognitive bias detection | 43 patterns, 12 types |
-| **Formal** | Formal verification | Symbolic logic |
+LLM:  "Everyone knows this is true"
+CID:  ⚠️  Bandwagon fallacy detected
 
-### Advanced Features
+LLM:  "The Earth is flat"
+CID:  ❌ Fact check failed  [confidence: 0.01]
+```
 
-- **Auto-Fix**: Corrects math errors, typos (200+), unit conversions, code consistency
-- **Streaming Validation**: Real-time SSE events for token-by-token validation
-- **Multi-Provider Proxy**: OpenAI, Anthropic, Gemini, and generic endpoints
-- **Semantic Cache**: Avoid redundant LLM calls with meaning-based caching
-- **Prompt Compression**: 30-50% token reduction before LLM calls
-- **Response Scoring**: Quality evaluation without re-querying
-- **MCP Server**: 13 tools for AI agent integration
+---
 
-### Performance
+## `// pipeline.exe`
 
-- **Binary Size**: ~630KB (WASM) / ~791KB (native)
-- **Validation Overhead**: <0.2% vs LLM inference cost
-- **Zero Dependencies**: Pure Rust with `std` only (optional `ureq` for HTTP)
+**5 validation gates. 0.0045ms overhead. 1,606 facts.**
 
-## Installation
+```
+    ┌─────────────────────────────────────────────────────────┐
+    │            CID VALIDATION PIPELINE                       │
+    │                                                          │
+    │  LLM Output ──→ [α Math] ──→ [β Logic] ──→ [γ Fact]   │
+    │                     │            │            │          │
+    │                     ▼            ▼            ▼          │
+    │               Auto-fix     Fallacy      Sanity Check    │
+    │                            Detect                       │
+    │                             │                           │
+    │                             ▼                           │
+    │                     Validated Output                     │
+    │                                                          │
+    └─────────────────────────────────────────────────────────┘
+    
+    overhead: 0.0045ms  |  cost: ~$0.0000045  |  vs GPT-4o: 0.18%
+```
 
-### From Source
+---
+
+## `// validation gates`
+
+| Gate | What It Catches | Coverage |
+|:-----|:----------------|:---------|
+| **α Math** | Wrong equations, bad arithmetic | Arithmetic, algebra, unit conversions |
+| **β Logic** | Invalid reasoning, non-sequiturs | Deductive, inductive, abductive |
+| **γ Fact** | False claims, hallucinations | **1,606 facts** across 12 domains |
+| **δ Confidence** | Over/under-confident statements | Platt scaling, domain calibration |
+| **ε Fallacy** | 14 types of logical fallacies | 69 detection patterns |
+| **ζ Bias** | 12 types of cognitive biases | 43 detection patterns |
+
+---
+
+## `// what can it do?`
+
+### Validation
 
 ```bash
-# Clone the repository
-git clone https://codeberg.org/NutypeBuddha/cid.git
-cd cid
-
-# Build with cargo
-cargo build --release
-
-# Binary is at target/release/cid
-./target/release/cid --help
-```
-
-### With WASM Support
-
-```bash
-# Install WASM target
-rustup target add wasm32-unknown-unknown
-
-# Build WASM binary
-cd cid-wasm
-./build.sh
-
-# Output: cid-wasm/target/wasm32-unknown-unknown/release/cid_wasm.wasm (615KB)
-```
-
-### On Termux (Android)
-
-```bash
-# Install Rust
-pkg install rust
-
-# Clone and build
-git clone https://codeberg.org/NutypeBuddha/cid.git
-cd cid
-cargo build --release
-```
-
-## Quick Start
-
-### CLI Usage
-
-```bash
-# Validate math expression
 echo "2 + 3 = 5" | cid validate -- math
+# → {"passed": true, "confidence": 0.99}
 
-# Fix math errors
-echo "2 + 3 = 6" | cid fix -- math
-
-# Fix typos
-echo "hte cat sat on teh mat" | cid fix --
-
-# Validate with all gates
 echo "The Earth is flat" | cid validate -- fact
-
-# Score response quality
-cid score "Everyone knows this is true"
+# → {"passed": false, "confidence": 0.01}
 ```
 
-### MCP Server
+### Auto-Fix
 
 ```bash
-# Start MCP server (stdio)
-cid mcp
+echo "2 + 3 = 6" | cid fix -- math
+# → "2 + 3 = 5"
 
-# Start HTTP MCP server (for Claude web)
-cid mcp-http 127.0.0.1:8080
+echo "hte cat sat on teh mat" | cid fix --
+# → "the cat sat on the mat"
 ```
 
-### HTTP Proxy
+### Fallacy Detection
 
 ```bash
-# Start proxy with OpenAI
-cid proxy --port 8080 --llm https://api.openai.com/v1/chat/completions --key sk-...
+echo "Everyone knows this is true" | cid validate -- logic
+# → Bandwagon fallacy detected
 
-# Validate via API
-curl -X POST http://localhost:8080/v1/validate \
-  -H "Content-Type: application/json" \
-  -d '{"text": "2 + 3 = 5", "context": "math"}'
+echo "You're wrong because you're a bot" | cid validate -- logic
+# → Ad hominem fallacy detected
 ```
 
-## Documentation
+### MCP Server (22 tools)
 
-### Architecture
-
-```
-src/
-├── main.rs              # CLI entry point
-├── lib.rs               # Public API
-├── core/
-│   ├── pin.rs           # Validation gates
-│   ├── ball.rs          # Token candidates
-│   └── pocket.rs        # Selected token
-├── gates/
-│   ├── mod.rs           # GateValidator trait
-│   ├── math.rs          # Math validation
-│   ├── logic.rs         # Logic validation
-│   ├── fact.rs          # Fact validation
-│   ├── confidence.rs    # Confidence scoring
-│   ├── fallacy.rs       # Fallacy detection
-│   ├── bias.rs          # Bias detection
-│   └── formal.rs        # Formal verification
-├── inference/
-│   ├── pipeline.rs      # Validation pipeline
-│   ├── proxy.rs         # HTTP proxy
-│   ├── stream.rs        # Streaming validation
-│   └── compressor.rs    # Prompt compression
-├── mcp/
-│   ├── server.rs        # MCP server
-│   └── tools.rs         # 13 MCP tools
-├── tanto/               # Tanto compute engine
-│   ├── math.rs          # Math operations
-│   ├── convert.rs       # Unit conversion
-│   ├── formulas.rs      # Physics formulas
-│   └── solver.rs        # Problem solvers
-└── kb/
-    └── facts.rs         # Knowledge base (776+ facts)
+```bash
+cid mcp              # stdio mode
+cid mcp-http :8080   # HTTP mode
 ```
 
-### MCP Tools
+Any AI agent can hook in:
+```json
+{"tool": "cid_validate", "text": "E=mc²", "context": "fact"}
+{"tool": "cid_detect_fallacies", "text": "Everyone agrees..."}
+{"tool": "cid_tanto_eval", "expression": "sqrt(144) + 3"}
+```
 
-| Tool | Description |
-|------|-------------|
-| `cid_validate` | Validate text through all gates |
-| `cid_fix` | Auto-fix math, typos, consistency |
-| `cid_lookup` | Look up a fact by name |
-| `cid_search` | Search KB by keyword |
-| `cid_detect_fallacies` | Detect 14 types of logical fallacies |
-| `cid_detect_biases` | Detect 12 types of cognitive biases |
-| `cid_sanity_check` | Check numeric values against physical ranges |
-| `cid_score` | Score response quality |
-| `cid_compress` | Reduce prompt token count |
-| `cid_sample` | Request LLM completion |
-| `cid_tanto_eval` | Evaluate math expressions |
-| `cid_tanto_convert` | Convert between units |
-| `cid_tanto_solve` | Solve physics problems |
+---
 
-### Knowledge Base Domains
+## `// why cid?`
 
-| Domain | Symbol | Facts |
-|--------|--------|-------|
+| Problem | CID Solution |
+|:--------|:-------------|
+| LLM math errors | α Math gate catches + auto-fixes |
+| Logical fallacies | ε 14 types, 69 patterns |
+| Hallucinated facts | γ 1,606 facts, 12 domains |
+| Cognitive biases | ζ 12 types, 43 patterns |
+| Expensive re-querying | 0.0045ms vs another LLM call |
+| Platform lock-in | MCP works with Grok, Claude, GPT, Mistral |
+
+### vs. Alternatives
+
+| | **CID** | Guardrails | LMQL | Outlines |
+|:--|:--------|:-----------|:-----|:---------|
+| Language | **Rust** | Python | Python | Python |
+| Binary | **630KB WASM** | ~50MB+ | ~30MB+ | ~20MB+ |
+| Fallacy detection | **Yes (14)** | No | No | No |
+| Fact checking | **1,606 facts** | No | No | No |
+| MCP support | **22 tools** | No | No | No |
+| Auto-fix | **Yes** | No | No | No |
+
+---
+
+## `// installation`
+
+### From source
+
+```bash
+git clone https://codeberg.org/NutypeBuddha/cid.git
+cd cid
+cargo build --release
+# binary: target/release/cid (~856KB)
+```
+
+### WASM (630KB — run anywhere)
+
+```bash
+rustup target add wasm32-unknown-unknown
+cd cid-wasm && ./build.sh
+# → cid_wasm.wasm (630KB)
+```
+
+### Termux (Android)
+
+```bash
+pkg install rust
+git clone https://codeberg.org/NutypeBuddha/cid.git && cd cid
+cargo build --release
+```
+
+---
+
+## `// knowledge base`
+
+**1,606 facts. 12 Greek-letter domains. TF-IDF search.**
+
+| Domain | Symbol | Content |
+|:-------|:------:|:--------|
 | Math & Logic | α | Constants, formulas, theorems |
 | Physics & Chemistry | β | Physical constants, elements |
 | Astronomy | γ | Celestial bodies, distances |
@@ -218,9 +216,103 @@ src/
 | Philosophy | λ | Philosophical concepts |
 | Psychology | μ | Psychological phenomena |
 
-## Configuration
+---
 
-### Environment Variables
+## `// architecture`
+
+```
+src/
+├── main.rs              # CLI: validate, fix, mcp, tanto, proxy, score
+├── lib.rs               # Public API
+├── core/
+│   ├── pin.rs           # Gate configuration
+│   ├── ball.rs          # Token candidates + results
+│   └── pocket.rs        # Selected best candidate
+├── gates/
+│   ├── math.rs          # Math validation + auto-fix
+│   ├── logic.rs         # Reasoning chain validation
+│   ├── fact.rs          # KB lookup (1,606 facts)
+│   ├── confidence.rs    # Platt scaling calibration
+│   ├── fallacy.rs       # 69 fallacy patterns (14 types)
+│   ├── bias.rs          # 43 bias patterns (12 types)
+│   └── formal.rs        # Symbolic logic verification
+├── inference/
+│   ├── pipeline.rs      # Validation orchestration
+│   ├── proxy.rs         # Multi-provider LLM proxy
+│   ├── stream.rs        # SSE streaming validation
+│   └── compressor.rs    # Prompt compression (30-50%)
+├── mcp/
+│   ├── server.rs        # MCP JSON-RPC server
+│   └── tools.rs         # 22 MCP tools
+├── tanto/               # Tanto compute engine
+│   ├── math.rs          # Arithmetic operations
+│   ├── rational.rs      # Exact fractions
+│   ├── convert.rs       # 60+ unit conversions
+│   ├── formulas.rs      # 22 physics formulas
+│   ├── solver.rs        # 9 solver templates
+│   ├── sanity.rs        # Physical range checks
+│   ├── thinking.rs      # 6 thinking frameworks
+│   ├── pipeline.rs      # Expression pipelines
+│   └── verify.rs        # Result verification
+└── kb/
+    └── facts.rs         # 1,606 facts, 12 domains, TF-IDF
+```
+
+### State Machine
+
+```
+Normal → Kakuhen → Jitan → Koatari
+         (success)  (timeout)  (overflow)
+```
+
+---
+
+## `// universal bridge`
+
+**Any AI chatbot can use CID.** Point it at [cid-bridge](https://codeberg.org/NutypeBuddha/cid-bridge):
+
+```bash
+git clone https://codeberg.org/NutypeBuddha/cid-bridge.git
+cd cid-bridge && npm install
+CID_BINARY=../cid/target/release/cid npm start
+```
+
+```
+POST /mcp       → Platform-aware validation (Grok, OpenAI, Anthropic, Mistral)
+POST /validate  → Direct CID calls
+GET  /health    → Status
+```
+
+---
+
+## `// performance`
+
+| Operation | Time | Cost |
+|:----------|-----:|-----:|
+| Math gate | ~0.001ms | ~$0.000001 |
+| Logic gate | ~0.002ms | ~$0.000002 |
+| Fact gate | ~0.001ms | ~$0.000001 |
+| Confidence | ~0.0005ms | ~$0.0000005 |
+| **Total** | **~0.0045ms** | **~$0.0000045** |
+
+```
+vs GPT-4o:  0.18% the cost
+            $0.0045/Mtok  vs  $2.50/Mtok
+```
+
+---
+
+## `// testing`
+
+```bash
+cargo test              # 181 tests (164 unit + 17 integration)
+cargo bench             # criterion benchmarks
+cargo clippy -- -D warnings  # 0 warnings
+```
+
+---
+
+## `// configuration`
 
 ```bash
 # Model routing
@@ -230,107 +322,48 @@ export CID_REASONING_MODEL="anthropic/claude-sonnet-4-6"
 
 # Provider priority
 export CID_PROVIDER_PRIORITY="anthropic,openai,google,ollama"
-
-# Timeouts
-export CID_MODEL_TIMEOUT="60000"
 ```
-
-### Feature Flags
 
 ```toml
+# Cargo features
 [dependencies]
-cid = { version = "0.1.0", features = ["proxy"] }
-
-# Available features:
-# - proxy: HTTP client for LLM proxying
-# - plugins: WASM-based third-party gate plugins
+cid = { version = "0.2.0", features = ["proxy"] }
+# - proxy: HTTP client for LLM proxy mode
+# - plugins: wasmtime (v46) for WASM gate plugins
 ```
-
-## Universal AI Bridge
-
-Any AI chatbot (Grok, OpenAI, Anthropic, Mistral, Claude) can hook into CID validation via the universal MCP bridge:
-
-```bash
-git clone https://codeberg.org/NutypeBuddha/cid-bridge.git
-cd cid-bridge
-npm install
-CID_BINARY=../cid/target/release/cid npm start
-```
-
-**Bridge repo**: [codeberg.org/NutypeBuddha/cid-bridge](https://codeberg.org/NutypeBuddha/cid-bridge)
-
-```
-POST /mcp       — MCP protocol (platform-aware validation)
-POST /validate  — direct CID validation
-GET  /health    — health check
-```
-
-## Performance Benchmarks
-
-| Operation | Time | Cost |
-|-----------|------|------|
-| Math gate | ~0.001ms | ~$0.000001 |
-| Logic gate | ~0.002ms | ~$0.000002 |
-| Fact gate | ~0.001ms | ~$0.000001 |
-| Confidence | ~0.0005ms | ~$0.0000005 |
-| **Total** | **~0.0045ms** | **~$0.0000045** |
-
-**Overhead vs GPT-4o**: 0.18% ($0.0045/Mtok vs $2.50/Mtok)
-
-## Testing
-
-```bash
-# Run all tests
-cargo test
-
-# Run with output
-cargo test -- --nocapture
-
-# Run specific test
-cargo test test_math_validation
-
-# Run benchmarks
-cargo bench
-
-# Run WASM tests
-cd cid-wasm
-cargo test
-```
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-
-```bash
-# Clone
-git clone https://codeberg.org/NutypeBuddha/cid.git
-cd cid
-
-# Build
-cargo build
-
-# Test
-cargo test
-
-# Lint
-cargo clippy -- -D warnings
-
-# Format
-cargo fmt
-```
-
-## License
-
-This project is in the public domain. See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- Inspired by pachinko mechanics for validation routing
-- Built with pure Rust for maximum portability
-- Tanto compute engine for math operations
 
 ---
 
-**Wintermore Housekeeping** — keeping LLMs in line.
+## `// links`
+
+| | |
+|:--|:--|
+| **Codeberg** | [codeberg.org/NutypeBuddha/cid](https://codeberg.org/NutypeBuddha/cid) |
+| **GitHub** | [github.com/nutypebuddha/cid](https://github.com/nutypebuddha/cid) |
+| **Bridge** | [codeberg.org/NutypeBuddha/cid-bridge](https://codeberg.org/NutypeBuddha/cid-bridge) |
+| **Author** | [Ryan Jason Phernetton](https://codeberg.org/NutypeBuddha) |
+
+---
+
+## `// contributing`
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+git clone https://codeberg.org/NutypeBuddha/cid.git
+cd cid
+cargo build && cargo test
+```
+
+---
+
+## `// license`
+
+**Unlicense** — public domain. See [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  <em>"kuru kuru~ your LLM's output has been validated."</em><br><br>
+  <strong>Wintermore Housekeeping</strong> — keeping LLMs in line.
+</p>

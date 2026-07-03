@@ -1,35 +1,98 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <linearGradient id="hatGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#4f46e5"/>
+    <!-- Main gradient: deep purple to violet (Herta's palette) -->
+    <linearGradient id="mainGrad" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#6D28D9"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
     </linearGradient>
-    <linearGradient id="bandGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f59e0b"/>
-      <stop offset="100%" stop-color="#d97706"/>
+    <!-- Accent gradient: cyan/teal (Silver Wolf's glitch) -->
+    <linearGradient id="glitchGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
     </linearGradient>
-    <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fbbf24"/>
-      <stop offset="100%" stop-color="#f59e0b"/>
-    </linearGradient>
+    <!-- Core glow -->
+    <radialGradient id="coreGlow" cx="50%" cy="45%" r="35%">
+      <stop offset="0%" stop-color="#C4B5FD" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#7C3AED" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4C1D95" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Filter for glitch effect -->
+    <filter id="glitch" x="-5%" y="-5%" width="110%" height="110%">
+      <feOffset dx="2" dy="0" in="SourceGraphic" result="red">
+        <animate attributeName="dx" values="2;-1;2;0;2" dur="4s" repeatCount="indefinite"/>
+      </feOffset>
+      <feColorMatrix in="red" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.3 0" result="redLayer"/>
+      <feOffset dx="-2" dy="0" in="SourceGraphic" result="cyan">
+        <animate attributeName="dx" values="-2;1;-2;0;-2" dur="4s" repeatCount="indefinite"/>
+      </feOffset>
+      <feColorMatrix in="cyan" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 0.3 0" result="cyanLayer"/>
+      <feBlend in="redLayer" in2="cyanLayer" mode="screen" result="glitchOut"/>
+      <feBlend in="SourceGraphic" in2="glitchOut" mode="screen"/>
+    </filter>
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <!-- Brim -->
-  <ellipse cx="256" cy="380" rx="200" ry="40" fill="url(#hatGrad)" opacity="0.9"/>
-  <!-- Cone -->
-  <path d="M256 40 L120 360 Q256 320 392 360 Z" fill="url(#hatGrad)"/>
-  <!-- Band -->
-  <path d="M180 340 Q256 310 332 340 L340 360 Q256 330 172 360 Z" fill="url(#bandGrad)"/>
-  <!-- Buckle -->
-  <rect x="244" y="330" width="24" height="28" rx="3" fill="#1e1b4b"/>
-  <rect x="250" y="336" width="12" height="16" rx="2" fill="url(#bandGrad)"/>
-  <!-- Star on tip -->
-  <polygon points="256,20 262,34 278,34 266,44 270,58 256,50 242,58 246,44 234,34 250,34" fill="url(#starGrad)"/>
-  <!-- Magic sparkles -->
-  <circle cx="160" cy="180" r="4" fill="#a78bfa" opacity="0.6"/>
-  <circle cx="340" cy="220" r="3" fill="#a78bfa" opacity="0.4"/>
-  <circle cx="180" cy="280" r="2.5" fill="#a78bfa" opacity="0.5"/>
-  <circle cx="350" cy="300" r="3.5" fill="#c084fc" opacity="0.3"/>
-  <!-- Validation rings (subtle) -->
-  <circle cx="256" cy="240" r="100" fill="none" stroke="#818cf8" stroke-width="0.5" opacity="0.15"/>
-  <circle cx="256" cy="240" r="130" fill="none" stroke="#818cf8" stroke-width="0.3" opacity="0.1"/>
+
+  <!-- Background circle (optional, for avatar use) -->
+  <!-- <circle cx="256" cy="256" r="256" fill="#0F0A1A"/> -->
+
+  <!-- Outer validation rings (Herta's puppet joints / Silver Wolf's data rings) -->
+  <circle cx="256" cy="240" r="180" fill="none" stroke="#7C3AED" stroke-width="0.8" opacity="0.2" stroke-dasharray="8 4"/>
+  <circle cx="256" cy="240" r="160" fill="none" stroke="#06B6D4" stroke-width="0.5" opacity="0.15" stroke-dasharray="3 6"/>
+  <circle cx="256" cy="240" r="140" fill="none" stroke="#8B5CF6" stroke-width="0.3" opacity="0.1"/>
+
+  <!-- Glitch offset layers -->
+  <g filter="url(#glitch)">
+    <!-- Hat brim -->
+    <ellipse cx="256" cy="380" rx="180" ry="35" fill="url(#mainGrad)" opacity="0.95"/>
+    <!-- Hat cone -->
+    <path d="M256 55 L130 360 Q256 325 382 360 Z" fill="url(#mainGrad)"/>
+    <!-- Hat band -->
+    <path d="M185 345 Q256 315 327 345 L335 362 Q256 332 177 362 Z" fill="url(#glitchGrad)" opacity="0.8"/>
+  </g>
+
+  <!-- Core orb (the "inference device" — Herta's puppet core / Silver Wolf's byte) -->
+  <g filter="url(#glow)">
+    <circle cx="256" cy="220" r="52" fill="url(#coreGlow)" opacity="0.9"/>
+    <circle cx="256" cy="220" r="42" fill="none" stroke="#C4B5FD" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="256" cy="220" r="32" fill="none" stroke="#06B6D4" stroke-width="1" opacity="0.5"/>
+    <!-- Inner symbol: validation checkmark / circuit pattern -->
+    <path d="M240 220 L252 232 L272 208" stroke="#C4B5FD" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <!-- Circuit dots -->
+    <circle cx="256" cy="175" r="2" fill="#06B6D4" opacity="0.6"/>
+    <circle cx="256" cy="265" r="2" fill="#06B6D4" opacity="0.6"/>
+    <circle cx="211" cy="220" r="2" fill="#06B6D4" opacity="0.6"/>
+    <circle cx="301" cy="220" r="2" fill="#06B6D4" opacity="0.6"/>
+  </g>
+
+  <!-- Star on tip (Herta's signature — "kuru kuru~") -->
+  <g filter="url(#glow)">
+    <polygon points="256,30 262,42 276,42 265,50 269,62 256,55 243,62 247,50 236,42 250,42" fill="#C4B5FD" opacity="0.9"/>
+  </g>
+
+  <!-- Glitch scanlines (Silver Wolf aesthetic) -->
+  <g opacity="0.08">
+    <rect x="100" y="180" width="312" height="1" fill="#06B6D4"/>
+    <rect x="100" y="200" width="312" height="1" fill="#06B6D4"/>
+    <rect x="100" y="240" width="312" height="1" fill="#06B6D4"/>
+    <rect x="100" y="260" width="312" height="1" fill="#06B6D4"/>
+    <rect x="100" y="300" width="312" height="1" fill="#06B6D4"/>
+  </g>
+
+  <!-- Data particles (floating bytes) -->
+  <g opacity="0.4">
+    <text x="145" y="170" font-family="monospace" font-size="8" fill="#06B6D4">01</text>
+    <text x="340" y="195" font-family="monospace" font-size="7" fill="#8B5CF6">10</text>
+    <text x="160" y="290" font-family="monospace" font-size="6" fill="#06B6D4">0x</text>
+    <text x="330" y="275" font-family="monospace" font-size="8" fill="#C4B5FD">FF</text>
+    <text x="190" y="340" font-family="monospace" font-size="6" fill="#8B5CF6">OK</text>
+    <text x="310" y="350" font-family="monospace" font-size="7" fill="#06B6D4">✓</text>
+  </g>
 </svg>
