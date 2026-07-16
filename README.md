@@ -1,5 +1,7 @@
 # CID - Calibrated Inference Device
 
+> **L.ai · Gate** — part of the [L.ai](https://github.com/nutypebuddha/lai) umbrella. *Verify, don't trust.*
+
 [![Crates.io](https://img.shields.io/crates/v/cid.svg)](https://crates.io/crates/cid)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/cid)
 [![License](https://img.shields.io/badge/license-unlicense-blue.svg)](LICENSE)
